@@ -22,6 +22,7 @@ interface HeaderProps {
 export default function Header({ onMobileMenuToggle }: HeaderProps) {
   const [darkMode, setDarkMode] = useState(false)
   const [notifications, setNotifications] = useState(0)
+  const [notificationList, setNotificationList] = useState<any[]>([])
   const [userName, setUserName] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [voiceMode, setVoiceMode] = useState(false)
@@ -45,12 +46,14 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
     // Fetch real notification count from API
     const token = localStorage.getItem('token')
     if (token) {
-      fetch('http://localhost:8000/api/ai/notifications', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      fetch(`${apiUrl}/api/ai/notifications`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(r => r.json())
         .then(data => {
           if (Array.isArray(data)) {
+            setNotificationList(data)
             const unread = data.filter((n: any) => !n.is_read).length
             setNotifications(unread)
           }
@@ -93,20 +96,34 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
     if (typeof window === 'undefined') return []
     const isAccountFrozen = localStorage.getItem('isAccountFrozen') === 'true'
     const items = []
-    if (notifications > 0) {
-      items.push(
-        <DropdownMenuItem key="notif" className="flex flex-col items-start p-3">
-          <div className="flex items-start space-x-2 w-full">
-            <Shield className="w-4 h-4 text-teal-500 mt-1" />
-            <div className="flex-1">
-              <p className="font-semibold text-sm">You have {notifications} unread notification{notifications > 1 ? 's' : ''}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Visit AI Assistant to view all</p>
+
+    // Show actual notifications from API
+    if (notificationList.length > 0) {
+      notificationList.slice(0, 5).forEach((n: any) => {
+        const iconColor = n.severity === 'high' || n.severity === 'critical'
+          ? 'text-red-500'
+          : n.severity === 'medium'
+          ? 'text-yellow-500'
+          : n.type === 'fraud'
+          ? 'text-red-500'
+          : 'text-teal-500'
+        items.push(
+          <DropdownMenuItem key={n.id} className={`flex flex-col items-start p-3 ${!n.is_read ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
+            <div className="flex items-start space-x-2 w-full">
+              <Shield className={`w-4 h-4 mt-1 flex-shrink-0 ${iconColor}`} />
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-semibold truncate ${!n.is_read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-300'}`}>
+                  {n.title}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{n.message}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{new Date(n.created_at).toLocaleDateString('en-IN')}</p>
+              </div>
+              {!n.is_read && <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0 mt-1" />}
             </div>
-          </div>
-        </DropdownMenuItem>
-      )
-    }
-    if (isAccountFrozen) {
+          </DropdownMenuItem>
+        )
+      })
+    } else if (isAccountFrozen) {
       items.push(
         <DropdownMenuItem key="frozen" className="flex flex-col items-start p-3">
           <div className="flex items-start space-x-2 w-full">
@@ -118,15 +135,14 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
           </div>
         </DropdownMenuItem>
       )
-    }
-    if (items.length === 0) {
+    } else {
       items.push(
         <DropdownMenuItem key="clear" className="flex flex-col items-start p-3">
           <div className="flex items-start space-x-2 w-full">
             <Shield className="w-4 h-4 text-green-500 mt-1" />
             <div className="flex-1">
               <p className="font-semibold text-sm">All Clear</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">No security issues detected</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">No new notifications</p>
             </div>
           </div>
         </DropdownMenuItem>
