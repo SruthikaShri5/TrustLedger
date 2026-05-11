@@ -9,4 +9,5 @@ COPY . .
 
 EXPOSE 8000
 
+# Run the MongoDB-based main application
 CMD ["python", "main.py"]
