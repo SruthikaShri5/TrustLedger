@@ -7,7 +7,7 @@
     "dev:fast": "next dev & node warmup.js",
     "warmup": "node warmup.js",
     "build": "next build",
-    "start": "npx serve@latest out",
+    "start": "next start -p ${PORT:-3000}",
     "lint": "next lint"
   },
   "dependencies": {
