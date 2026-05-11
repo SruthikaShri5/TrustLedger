@@ -9,4 +9,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["python", "main_pathway.py"]
+CMD ["python", "main.py"]
